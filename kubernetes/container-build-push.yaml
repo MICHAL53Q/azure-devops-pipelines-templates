@@ -1,0 +1,26 @@
+parameters:
+  - name: name
+    type: string
+  - name: repository
+    type: string
+  - name: tag
+    type: string
+  - name: dockerfile_path
+    type: string
+  - name: service_conn
+    type: string
+
+jobs:
+  - job:
+    displayName: "Build & Push Image: ${{ parameters.repository }}/${{ parameters.name }}"
+    steps:
+      - task: Docker@2
+        displayName: Build and Push image
+        inputs:
+          containerRegistry: ${{ parameters.service_conn }}
+          repository: "${{ parameters.repository }}/${{ parameters.name }}"
+          command: "buildAndPush"
+          Dockerfile: ${{ parameters.dockerfile_path }}
+          tags: |
+            ${{ parameters.tag }}
+            latest

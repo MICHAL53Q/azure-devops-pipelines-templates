@@ -1,0 +1,42 @@
+parameters:
+  - name: environment
+    type: string
+  - name: name
+    type: string
+  - name: cronjob_name
+    type: string
+  - name: image_name
+    type: string
+  - name: container_name
+    type: string
+  - name: repository
+    type: string
+  - name: tag
+    type: string
+  - name: service_conn
+    type: string
+  - name: namespace
+    type: string
+  - name: containe_registry_name
+    type: string
+    default: comaptestaus.azurecr.io
+
+jobs:
+  - deployment:
+    displayName: "Deploy CronJob container: ${{ parameters.container_name }}"
+    environment: "${{ parameters.environment }}"
+    pool:
+      vmImage: "ubuntu-latest"
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - task: Kubernetes@1
+              displayName: Update CronJob image tag
+              inputs:
+                connectionType: "Kubernetes Service Connection"
+                kubernetesServiceEndpoint: ${{ parameters.service_conn }}
+                namespace: "${{ parameters.namespace }}"
+                command: "set"
+                arguments: "image cronjob ${{ parameters.cronjob_name }} ${{ parameters.container_name }}=${{ parameters.containe_registry_name }}/${{ parameters.repository }}/${{ parameters.image_name }}:${{ parameters.tag }}"
+                outputFormat: "none"

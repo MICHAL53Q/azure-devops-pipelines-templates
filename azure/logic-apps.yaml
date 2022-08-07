@@ -1,0 +1,42 @@
+parameters:
+  - name: environment
+    type: string
+  - name: service_conn
+    type: string
+  - name: artifact
+    type: string
+  - name: resource_group
+    type: string
+  - name: template_path
+    type: string
+    default: ""
+
+jobs:
+  - deployment:
+    displayName: Deploy Logic Apps
+    environment: "${{ parameters.environment }}"
+    pool:
+      vmImage: "ubuntu-latest"
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: git://DevOps/templates
+              displayName: "Checkout DevOps templates repo"
+            - download: current
+              displayName: "Download build artifacts"
+              artifact: "${{ parameters.artifact }}"
+            - task: ExtractFiles@1
+              displayName: "Extract build artifacts"
+              inputs:
+                archiveFilePatterns: "$(Pipeline.Workspace)/${{ parameters.artifact }}/*.zip"
+                destinationFolder: "$(build.artifactstagingdirectory)/build"
+            - script: pip install --no-cache-dir -r '$(Agent.BuildDirectory)/s/azure/scripts/logic_apps/requirements.txt'
+              displayName: "Install dependencies"
+            - task: PythonDeployment@0
+              displayName: "Execute deployment"
+              inputs:
+                azureSubscription: ${{ parameters.service_conn }}
+                scriptSource: "filePath"
+                scriptPath: "$(Agent.BuildDirectory)/s/azure/scripts/logic_apps/main.py"
+                arguments: "--path=$(build.artifactstagingdirectory)/build/${{ parameters.template_path }} --resource_group_name=${{ parameters.resource_group }}"

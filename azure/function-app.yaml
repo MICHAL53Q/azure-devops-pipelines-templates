@@ -1,0 +1,36 @@
+parameters:
+  - name: environment
+    type: string
+  - name: service_conn
+    type: string
+  - name: artifact
+    type: string
+  - name: resource_group
+    type: string
+  - name: function_name
+    type: string
+
+jobs:
+  - deployment:
+    displayName: "Deploy Function App: ${{ parameters.function_name }}"
+    environment: "${{ parameters.environment }}"
+    pool:
+      vmImage: "ubuntu-latest"
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: git://DevOps/templates
+              displayName: "Checkout DevOps templates repo"
+            - download: current
+              displayName: "Download build artifacts"
+              artifact: "${{ parameters.artifact }}"
+            - script: pip install --no-cache-dir -r '$(Agent.BuildDirectory)/s/azure/scripts/function_apps/requirements.txt'
+              displayName: "Install dependencies"
+            - task: PythonDeployment@0
+              displayName: "Execute deployment"
+              inputs:
+                azureSubscription: ${{ parameters.service_conn }}
+                scriptSource: "filePath"
+                scriptPath: "$(Agent.BuildDirectory)/s/azure/scripts/function_apps/main.py"
+                arguments: "--path=$(Pipeline.Workspace)/${{ parameters.artifact }}/${{ parameters.artifact }}.zip --resource_group_name=${{ parameters.resource_group }} --name=${{ parameters.function_name }}"
